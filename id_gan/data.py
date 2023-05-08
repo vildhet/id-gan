@@ -12,11 +12,9 @@ def get_mnist_dataset():
     input_size = config["input_size"][:2]
 
     image_transforms = transforms.Compose([
-        transforms.RandomRotation(30),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
         transforms.Resize(input_size, antialias=True),
+        transforms.RandomRotation(30),
+        transforms.ToTensor(),
         transforms.Normalize(mean=(0.1307, ), std=(0.3081, ))
     ])
 
@@ -28,9 +26,8 @@ def get_celeba_dataset():
     input_size = config["input_size"][:2]
 
     image_transforms = transforms.Compose([
-        transforms.RandomRotation(30),
-        transforms.ToTensor(),
         transforms.Resize(input_size, antialias=True),
+        transforms.ToTensor(),
         transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     ])
 
