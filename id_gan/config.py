@@ -9,6 +9,15 @@ CONFIG = {
             "lr": 3e-4,
             "beta": 4,
         }
+    },
+    "celeba": {
+        "input_size": (64, 64, 3),
+        "vae": {
+            "latent": 20,
+            "dims": [32, 64, 128, 256],
+            "lr": 3e-4,
+            "beta": 4,
+        }
     }
 }
 

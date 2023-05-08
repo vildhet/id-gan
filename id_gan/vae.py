@@ -1,3 +1,4 @@
+import os
 import math
 import torch
 import numpy as np
@@ -12,7 +13,7 @@ from .data import get_dataset
 from .config import get_config
 
 
-DEFAULT_HIDDEN_DIMS = [32, 64]
+DEFAULT_HIDDEN_DIMS = [32, 64, 128, 512]
 
 
 class VAE(nn.Module):
@@ -59,7 +60,6 @@ class VAE(nn.Module):
         in_channels = hidden_dims[-1]
 
         for out_channels in hidden_dims[-2::-1]:
-            print(f"{in_channels} -> {out_channels}")
             layer_group = nn.Sequential(
                 nn.ConvTranspose2d(
                     in_channels, out_channels,
@@ -87,6 +87,9 @@ class VAE(nn.Module):
             nn.Unflatten(1, (hidden_dims[-1], out_size, out_size)),
             *decoder_layers
         )
+        
+    def get_device(self):
+        return next(self.parameters()).device
 
     def encode(self, inp):
         """
@@ -123,6 +126,12 @@ class VAE(nn.Module):
         output = self.decode(z)
 
         return output, mu, log_var
+    
+    @torch.no_grad()
+    def sample(self, num_samples):
+        z = torch.randn(num_samples, self.n_latent)
+        z = z.to(self.get_device())
+        return self.decode(z)
 
 
 def vae_loss(orig_image, recon_image, mu, log_var, beta):
@@ -135,10 +144,26 @@ def vae_loss(orig_image, recon_image, mu, log_var, beta):
     return recon_loss + beta * kl_div
 
 
+def create_vae_model(config):
+    vae_config = config["vae"]
+    
+    input_size = config["input_size"]
+    assert input_size[0] == input_size[1], "Input image should be square"
+
+    model = VAE(
+        n_channels=input_size[2],
+        n_latent=vae_config["latent"],
+        hidden_dims=vae_config["dims"],
+        input_size=input_size[0]
+    )
+    return model
+
 def train_vae(
-    config_name="mnist",
+    config_name,
     batch_size=64,
+    num_workers=0,
     epochs=10,
+    output_dir="output",
 ):
     config = get_config(config_name)
     vae_config = config["vae"]
@@ -152,19 +177,12 @@ def train_vae(
     data_loader = DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=True
+        shuffle=True,
+        num_workers=num_workers,
     )
 
     # Initialize model
-    input_size = config["input_size"]
-    assert input_size[0] == input_size[1], "Input image should be square"
-
-    model = VAE(
-        n_channels=input_size[2],
-        n_latent=vae_config["latent"],
-        hidden_dims=vae_config["dims"],
-        input_size=input_size[0]
-    )
+    model = create_vae_model(config)
     model.to(device)
     model.train()
 
@@ -195,3 +213,29 @@ def train_vae(
                 mean_loss = np.mean(losses[-50:])
                 pbar.set_description(f"[epoch {epoch}] loss = {mean_loss:.4f}")
                 pbar.update(1)
+                
+    os.makedirs(output_dir, exist_ok=True)
+    vae_checkpoint_path = os.path.join(output_dir, f"{config_name}_vae.pt")
+    
+    print(f"Saving VAE model to {vae_checkpoint_path}")
+    
+    model.cpu()
+    
+    torch.save(model.state_dict(), vae_checkpoint_path)
+    
+    return {
+        "loss": losses
+    }
+
+    
+def load_vae(config_name, checkpoint_dir="output"):
+    config = get_config(config_name)
+    model = create_vae_model(config)
+    
+    vae_checkpoint_path = os.path.join(checkpoint_dir, f"{config_name}_vae.pt")
+    print(f"Loading VAE model from {vae_checkpoint_path}")
+    
+    model.load_state_dict(torch.load(vae_checkpoint_path))
+    model.eval()
+    
+    return model
