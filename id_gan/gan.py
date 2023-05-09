@@ -126,13 +126,14 @@ class Discriminator(nn.Module):
 
 def create_gan_models(config):
     gan_config = config["gan"]
+    vae_config = config["vae"]
 
     input_size = config["input_size"]
     assert input_size[0] == input_size[1], "Input image should be square"
 
     generator = Generator(
         n_channels=input_size[2],
-        n_latent=gan_config["latent"],
+        n_latent=gan_config["latent"] + vae_config["latent"],
         hidden_dims=gan_config["dims"],
         input_size=input_size[0]
     )
@@ -155,13 +156,15 @@ def train_gan(
 ):
     config = get_config(config_name)
     gan_config = config["gan"]
-
-    # Load previously trained VAE model
-    vae = load_vae(config_name, checkpoint_dir=output_dir)
-
+    
     # Device
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print("Using device", device)
+
+    # Load previously trained VAE model
+    vae = load_vae(config_name, checkpoint_dir=output_dir)
+    vae.to(device)
+    vae.train()
 
     # Load data
     dataset = get_dataset(config_name)
@@ -174,6 +177,8 @@ def train_gan(
 
     # Initialize model
     generator, discriminator = create_gan_models(config)
+    generator.train()
+    discriminator.train()
 
     generator.to(device)
     discriminator.to(device)
@@ -210,7 +215,13 @@ def train_gan(
                 loss_d_real = criterion_d(real_logits, real_labels)
                 loss_d_real.backward()
 
-                z = torch.randn((bs, gan_config["latent"]))
+                # Get latent from VAE
+                with torch.no_grad():
+                    vae_z = vae.reparameterize(*vae.encode(real_images))
+                gan_z = torch.randn((bs, gan_config["latent"]), device=device)
+                
+                z = torch.cat([gan_z, vae_z], 1)
+                
                 fake_images = generator(z)
                 fake_labels = torch.full((bs,), 0.0, dtype=torch.float, device=device)
 
