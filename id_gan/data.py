@@ -15,7 +15,7 @@ def get_mnist_dataset():
         transforms.Resize(input_size, antialias=True),
         transforms.RandomRotation(30),
         transforms.ToTensor(),
-        transforms.Normalize(mean=(0.1307, ), std=(0.3081, ))
+        transforms.Normalize(mean=(0.5,), std=(0.5,))
     ])
 
     return MNIST(DATA_PATH, train=True, transform=image_transforms, download=True)
