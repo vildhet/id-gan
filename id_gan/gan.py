@@ -187,8 +187,8 @@ def train_gan(
     discriminator.apply(weights_init_normal)
 
     # Optimizers
-    optimizer_g = optim.Adam(generator.parameters(), lr=gan_config["lr"])
-    optimizer_d = optim.Adam(discriminator.parameters(), lr=gan_config["lr"])
+    optimizer_g = optim.Adam(generator.parameters(), lr=gan_config["lr"], betas=(0.5, 0.999))
+    optimizer_d = optim.Adam(discriminator.parameters(), lr=gan_config["lr"], betas=(0.5, 0.999))
 
     criterion_d = nn.BCEWithLogitsLoss()
 
@@ -229,6 +229,7 @@ def train_gan(
                 loss_d_fake = criterion_d(fake_logits, fake_labels)
                 loss_d_fake.backward()
 
+                nn.utils.clip_grad_norm_(discriminator.parameters(), 1.0)
                 optimizer_d.step()
 
                 loss_d = loss_d_real + loss_d_fake
@@ -241,6 +242,7 @@ def train_gan(
                 loss_g = criterion_d(fake_logits, real_labels)
                 loss_g.backward()
 
+                nn.utils.clip_grad_norm_(generator.parameters(), 1.0)
                 optimizer_g.step()
 
                 losses_g.append(loss_g.item())

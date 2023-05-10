@@ -12,7 +12,7 @@ CONFIG = {
         "gan": {
             "latent": 20,
             "dims": [32, 64, 128, 256],
-            "lr": 2e-4,
+            "lr": 1e-3,
         }
     },
     "celeba": {
