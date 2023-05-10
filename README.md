@@ -8,10 +8,10 @@ Implementation of the ID-GAN in PyTorch (https://arxiv.org/pdf/2001.04296.pdf)
 import id_gan
 
 # Train and save VAE
-id_gan.train_vae("mnist", batch_size=512, num_workers=8, epochs=20)
+id_gan.train_vae("mnist", epochs=20, batch_size=512, num_workers=8)
 
 # Train and save GAN based on VAE
-id_gan.train_gan("mnist", epochs=60, num_workers=8, batch_size=512)
+id_gan.train_gan("mnist", epochs=60, batch_size=512, num_workers=8)
 
 # Load generator from GAN model
 gan = id_gan.load_gan("mnist")
