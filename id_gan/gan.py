@@ -12,7 +12,7 @@ from .vae import load_vae
 from . import utils
 
 
-DEFAULT_HIDDEN_DIMS = [32, 64, 128, 512]
+DEFAULT_HIDDEN_DIMS = [32, 64, 128, 256]
 
 
 def weights_init_normal(m):
